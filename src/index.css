@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-adotek-red: #E30613;
+  --color-adotek-black: #1A1A1A;
+  --color-adotek-dark: #111111;
+  --font-outfit: 'Outfit', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+}
+
+body {
+  font-family: var(--font-inter);
+  background-color: #f8f9fa;
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-outfit);
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0 !important;
+  }
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+    height: 297mm;
+    max-height: 297mm;
+    overflow: hidden !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-sizing: border-box !important;
+  }
+  /* Prevent blank page after the very last page */
+  .page-break:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Preview mode A4 simulation */
+@media screen {
+  .page-break {
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  }
+  .page-break + .page-break {
+    margin-top: 24px;
+  }
+}
