@@ -167,11 +167,13 @@ const PrintLayout = forwardRef<HTMLDivElement, PrintLayoutProps>(
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 {companyInfo.logo && (
-                  <img src={companyInfo.logo} alt="" style={{ height: '48px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+                  <img src={companyInfo.logo} alt="" style={{ height: '80px', objectFit: 'contain', filter: 'brightness(0) invert(1)', display: 'block' }} />
                 )}
               </div>
               {q.customerLogo && (
-                <img src={q.customerLogo} alt="" style={{ height: '40px', objectFit: 'contain', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', padding: '8px' }} />
+                <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '16px', padding: '16px 24px', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}>
+                  <img src={q.customerLogo} alt="" style={{ height: '160px', maxWidth: '280px', objectFit: 'contain', display: 'block' }} />
+                </div>
               )}
             </div>
 
@@ -262,7 +264,14 @@ const PrintLayout = forwardRef<HTMLDivElement, PrintLayoutProps>(
         ════════════════════════════════════════════ */}
         {q.benefitsSection?.show && (
           <div className="page-break" style={{ padding: '48px', minHeight: '276mm', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle sub={q.benefitsSection.description}>{q.benefitsSection.title}</SectionTitle>
+            <SectionTitle>{q.benefitsSection.title}</SectionTitle>
+
+            {/* Description — always visible under title */}
+            {q.benefitsSection.description ? (
+              <div style={{ marginTop: '-24px', marginBottom: '28px', padding: '16px 20px', background: '#f8f9fa', borderLeft: '4px solid #E30613', borderRadius: '0 8px 8px 0' }}>
+                <p style={{ fontSize: '13px', color: '#444', lineHeight: 1.8, margin: 0 }}>{q.benefitsSection.description}</p>
+              </div>
+            ) : null}
 
             {/* Savings cards */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>

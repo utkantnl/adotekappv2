@@ -36,6 +36,28 @@ function lsSet(key: string, value: unknown) {
   }
 }
 
+// --- Supabase safe write with retry ---
+async function safeSupabaseWrite(
+  operation: () => PromiseLike<{ error: unknown }>,
+  label: string,
+  retries = 2
+) {
+  if (!supabase) return;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const { error } = await Promise.resolve(operation());
+      if (!error) return; // success
+      console.warn(`[Supabase] ${label} attempt ${attempt + 1} failed:`, error);
+    } catch (e) {
+      console.warn(`[Supabase] ${label} attempt ${attempt + 1} network error:`, e);
+    }
+    if (attempt < retries) {
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1))); // backoff
+    }
+  }
+  console.error(`[Supabase] ${label} FAILED after ${retries + 1} attempts — data is in localStorage as backup`);
+}
+
 const defaultBankDetails: BankDetails = {
   bankName: '',
   branch: '',
@@ -235,10 +257,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     lsSet(LS_KEYS.quotations, get().quotations);
     const updated = get().quotations.find((q) => q.id === id);
     if (updated) {
-      supabase
-        ?.from('quotations')
-        .upsert({ id, data: updated, status: updated.status, updated_at: new Date().toISOString() })
-        .then();
+      safeSupabaseWrite(
+        () => supabase!.from('quotations').upsert({ id, data: updated, status: updated.status, updated_at: new Date().toISOString() }),
+        `updateQuotation(${id})`
+      );
     }
   },
 
@@ -282,10 +304,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   addMachineTemplate: (t) => {
     set((s) => ({ machineTemplates: [...s.machineTemplates, t] }));
     lsSet(LS_KEYS.machineTemplates, get().machineTemplates);
-    supabase
-      ?.from('machine_templates')
-      .upsert({ id: t.id, data: t, user_id: t.user_id })
-      .then();
+    safeSupabaseWrite(
+      () => supabase!.from('machine_templates').upsert({ id: t.id, data: t, user_id: t.user_id }),
+      `addMachineTemplate(${t.id})`
+    );
   },
 
   updateMachineTemplate: (id, partial) => {
@@ -297,10 +319,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     lsSet(LS_KEYS.machineTemplates, get().machineTemplates);
     const updated = get().machineTemplates.find((t) => t.id === id);
     if (updated) {
-      supabase
-        ?.from('machine_templates')
-        .upsert({ id, data: updated, user_id: updated.user_id })
-        .then();
+      safeSupabaseWrite(
+        () => supabase!.from('machine_templates').upsert({ id, data: updated, user_id: updated.user_id }),
+        `updateMachineTemplate(${id})`
+      );
     }
   },
 
@@ -309,7 +331,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       machineTemplates: s.machineTemplates.filter((t) => t.id !== id),
     }));
     lsSet(LS_KEYS.machineTemplates, get().machineTemplates);
-    supabase?.from('machine_templates').delete().eq('id', id).then();
+    safeSupabaseWrite(
+      () => supabase!.from('machine_templates').delete().eq('id', id),
+      `deleteMachineTemplate(${id})`
+    );
   },
 
   // Materials
@@ -318,10 +343,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   addMaterial: (m) => {
     set((s) => ({ materials: [...s.materials, m] }));
     lsSet(LS_KEYS.materials, get().materials);
-    supabase
-      ?.from('materials')
-      .upsert({ id: m.id, data: m, user_id: m.user_id })
-      .then();
+    safeSupabaseWrite(
+      () => supabase!.from('materials').upsert({ id: m.id, data: m, user_id: m.user_id }),
+      `addMaterial(${m.id})`
+    );
   },
 
   updateMaterial: (id, partial) => {
@@ -333,17 +358,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     lsSet(LS_KEYS.materials, get().materials);
     const updated = get().materials.find((m) => m.id === id);
     if (updated) {
-      supabase
-        ?.from('materials')
-        .upsert({ id, data: updated, user_id: updated.user_id })
-        .then();
+      safeSupabaseWrite(
+        () => supabase!.from('materials').upsert({ id, data: updated, user_id: updated.user_id }),
+        `updateMaterial(${id})`
+      );
     }
   },
 
   deleteMaterial: (id) => {
     set((s) => ({ materials: s.materials.filter((m) => m.id !== id) }));
     lsSet(LS_KEYS.materials, get().materials);
-    supabase?.from('materials').delete().eq('id', id).then();
+    safeSupabaseWrite(
+      () => supabase!.from('materials').delete().eq('id', id),
+      `deleteMaterial(${id})`
+    );
   },
 
   // Company Info
@@ -355,31 +383,39 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
     const updated = get().companyInfo;
     lsSet(LS_KEYS.companyInfo, updated);
-    supabase
-      ?.from('company_info')
-      .upsert({ id: 'main', data: updated })
-      .then();
+    safeSupabaseWrite(
+      () => supabase!.from('company_info').upsert({ id: 'main', data: updated }),
+      'updateCompanyInfo'
+    );
   },
 
-  // Exchange Rates
-  exchangeRates: { USD: 0, EUR: 0, TRY: 1, lastUpdate: '' },
+  // Exchange Rates — cached in localStorage to survive API outages
+  exchangeRates: lsGet<ExchangeRates>('adotek_exchange_rates', { USD: 0, EUR: 0, TRY: 1, lastUpdate: '' }),
 
   fetchExchangeRates: async () => {
+    // Use cached rates if less than 1 hour old
+    const cached = lsGet<ExchangeRates>('adotek_exchange_rates', { USD: 0, EUR: 0, TRY: 1, lastUpdate: '' });
+    if (cached.lastUpdate) {
+      const age = Date.now() - new Date(cached.lastUpdate).getTime();
+      if (age < 60 * 60 * 1000) {
+        set({ exchangeRates: cached });
+        return;
+      }
+    }
     try {
-      const res = await fetch(
-        'https://api.exchangerate-api.com/v4/latest/USD'
-      );
+      const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
       const data = await res.json();
-      set({
-        exchangeRates: {
-          USD: 1,
-          EUR: data.rates?.EUR ? 1 / data.rates.EUR : 0,
-          TRY: data.rates?.TRY || 0,
-          lastUpdate: new Date().toISOString(),
-        },
-      });
+      const rates: ExchangeRates = {
+        USD: 1,
+        EUR: data.rates?.EUR ? 1 / data.rates.EUR : (cached.EUR || 0),
+        TRY: data.rates?.TRY || cached.TRY || 1,
+        lastUpdate: new Date().toISOString(),
+      };
+      set({ exchangeRates: rates });
+      lsSet('adotek_exchange_rates', rates);
     } catch (e) {
-      console.error('Failed to fetch exchange rates:', e);
+      console.error('Failed to fetch exchange rates — using cached values:', e);
+      if (cached.TRY) set({ exchangeRates: cached }); // fallback to cache
     }
   },
 
@@ -389,33 +425,29 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ defaultTerms: terms });
     const d = lsGet<{ t: string; sn: string; st: string; ss: string }>(LS_KEYS.defaults, { t: '', sn: '', st: '', ss: '' });
     lsSet(LS_KEYS.defaults, { ...d, t: terms });
-    supabase
-      ?.from('user_defaults')
-      .upsert({ id: 'main', default_terms: terms, updated_at: new Date().toISOString() })
-      .then();
+    safeSupabaseWrite(
+      () => supabase!.from('user_defaults').upsert({ id: 'main', default_terms: terms, updated_at: new Date().toISOString() }),
+      'setDefaultTerms'
+    );
   },
 
   defaultSenderName: lsGet<{ t: string; sn: string; st: string; ss: string }>(LS_KEYS.defaults, { t: '', sn: '', st: '', ss: '' }).sn,
   defaultSenderTitle: lsGet<{ t: string; sn: string; st: string; ss: string }>(LS_KEYS.defaults, { t: '', sn: '', st: '', ss: '' }).st,
   defaultSenderSignature: lsGet<{ t: string; sn: string; st: string; ss: string }>(LS_KEYS.defaults, { t: '', sn: '', st: '', ss: '' }).ss,
   setDefaultSender: (name, title, signature) => {
-    set({
-      defaultSenderName: name,
-      defaultSenderTitle: title,
-      defaultSenderSignature: signature,
-    });
+    set({ defaultSenderName: name, defaultSenderTitle: title, defaultSenderSignature: signature });
     const d = lsGet<{ t: string; sn: string; st: string; ss: string }>(LS_KEYS.defaults, { t: '', sn: '', st: '', ss: '' });
     lsSet(LS_KEYS.defaults, { ...d, sn: name, st: title, ss: signature });
-    supabase
-      ?.from('user_defaults')
-      .upsert({
+    safeSupabaseWrite(
+      () => supabase!.from('user_defaults').upsert({
         id: 'main',
         default_sender_name: name,
         default_sender_title: title,
         default_sender_signature: signature,
         updated_at: new Date().toISOString(),
-      })
-      .then();
+      }),
+      'setDefaultSender'
+    );
   },
 
   getCustomerHistory: () => {
