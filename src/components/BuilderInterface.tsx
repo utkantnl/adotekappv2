@@ -612,49 +612,73 @@ export default function BuilderInterface() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Kapak Görseli</Label>
-          <button
-            type="button"
-            onClick={() =>
-              handleImageUpload((b64) => update({ coverImage: b64 }), 1920, 1080)
-            }
-            className="w-full h-32 rounded-xl border-2 border-dashed border-gray-300 hover:border-adotek-red flex items-center justify-center transition-colors"
-          >
-            {q.coverImage ? (
-              <img
-                src={q.coverImage}
-                alt="Cover"
-                className="h-full w-full object-cover rounded-xl"
-              />
-            ) : (
-              <div className="text-center text-gray-400">
-                <Upload className="w-6 h-6 mx-auto mb-1" />
-                <span className="text-xs">Görsel Yükle</span>
-              </div>
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={() =>
+                handleImageUpload((b64) => update({ coverImage: b64 }), 1920, 1080)
+              }
+              className="w-full h-32 rounded-xl border-2 border-dashed border-gray-300 hover:border-adotek-red flex items-center justify-center transition-colors overflow-hidden"
+            >
+              {q.coverImage ? (
+                <img
+                  src={q.coverImage}
+                  alt="Cover"
+                  className="h-full w-full object-cover rounded-xl"
+                />
+              ) : (
+                <div className="text-center text-gray-400">
+                  <Upload className="w-6 h-6 mx-auto mb-1" />
+                  <span className="text-xs">Görsel Yükle</span>
+                </div>
+              )}
+            </button>
+            {q.coverImage && (
+              <button
+                type="button"
+                onClick={() => update({ coverImage: '' })}
+                className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors opacity-0 group-hover:opacity-100"
+                title="Görseli Sil"
+              >
+                <X className="w-4 h-4" />
+              </button>
             )}
-          </button>
+          </div>
         </div>
         <div>
           <Label>Müşteri Logosu (opsiyonel)</Label>
-          <button
-            type="button"
-            onClick={() =>
-              handleImageUpload((b64) => update({ customerLogo: b64 }), 400, 400)
-            }
-            className="w-full h-32 rounded-xl border-2 border-dashed border-gray-300 hover:border-adotek-red flex items-center justify-center transition-colors"
-          >
-            {q.customerLogo ? (
-              <img
-                src={q.customerLogo}
-                alt="Logo"
-                className="h-20 object-contain"
-              />
-            ) : (
-              <div className="text-center text-gray-400">
-                <Upload className="w-6 h-6 mx-auto mb-1" />
-                <span className="text-xs">Logo Yükle</span>
-              </div>
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={() =>
+                handleImageUpload((b64) => update({ customerLogo: b64 }), 400, 400)
+              }
+              className="w-full h-32 rounded-xl border-2 border-dashed border-gray-300 hover:border-adotek-red flex items-center justify-center transition-colors"
+            >
+              {q.customerLogo ? (
+                <img
+                  src={q.customerLogo}
+                  alt="Logo"
+                  className="h-20 object-contain"
+                />
+              ) : (
+                <div className="text-center text-gray-400">
+                  <Upload className="w-6 h-6 mx-auto mb-1" />
+                  <span className="text-xs">Logo Yükle</span>
+                </div>
+              )}
+            </button>
+            {q.customerLogo && (
+              <button
+                type="button"
+                onClick={() => update({ customerLogo: '' })}
+                className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors opacity-0 group-hover:opacity-100"
+                title="Logoyu Sil"
+              >
+                <X className="w-4 h-4" />
+              </button>
             )}
-          </button>
+          </div>
         </div>
       </div>
 
@@ -2082,20 +2106,32 @@ export default function BuilderInterface() {
         {/* Logo */}
         <div>
           <Label>Firma Logosu</Label>
-          <button
-            type="button"
-            onClick={() => handleImageUpload((b64) => updateCompanyInfo({ logo: b64 }), 400, 200)}
-            className="h-24 w-48 rounded-xl border-2 border-dashed border-gray-300 hover:border-adotek-red flex items-center justify-center transition-colors"
-          >
-            {ci.logo ? (
-              <img src={ci.logo} alt="Logo" className="h-16 object-contain" />
-            ) : (
-              <div className="text-center text-gray-400">
-                <Upload className="w-5 h-5 mx-auto mb-1" />
-                <span className="text-xs">Logo Yükle</span>
-              </div>
+          <div className="relative group inline-block">
+            <button
+              type="button"
+              onClick={() => handleImageUpload((b64) => updateCompanyInfo({ logo: b64 }), 400, 200)}
+              className="h-24 w-48 rounded-xl border-2 border-dashed border-gray-300 hover:border-adotek-red flex items-center justify-center transition-colors"
+            >
+              {ci.logo ? (
+                <img src={ci.logo} alt="Logo" className="h-16 object-contain" />
+              ) : (
+                <div className="text-center text-gray-400">
+                  <Upload className="w-5 h-5 mx-auto mb-1" />
+                  <span className="text-xs">Logo Yükle</span>
+                </div>
+              )}
+            </button>
+            {ci.logo && (
+              <button
+                type="button"
+                onClick={() => updateCompanyInfo({ logo: '' })}
+                className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors opacity-0 group-hover:opacity-100"
+                title="Logoyu Sil"
+              >
+                <X className="w-4 h-4" />
+              </button>
             )}
-          </button>
+          </div>
         </div>
 
         {/* Kurumsal Profil */}
