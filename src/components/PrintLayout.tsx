@@ -167,7 +167,9 @@ const PrintLayout = forwardRef<HTMLDivElement, PrintLayoutProps>(
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 {companyInfo.logo && (
-                  <img src={companyInfo.logo} alt="" style={{ height: '80px', objectFit: 'contain', filter: 'brightness(0) invert(1)', display: 'block' }} />
+                  <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '10px 18px', display: 'inline-block' }}>
+                    <img src={companyInfo.logo} alt="" style={{ height: '64px', objectFit: 'contain', display: 'block' }} />
+                  </div>
                 )}
               </div>
               {q.customerLogo && (
